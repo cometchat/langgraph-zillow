@@ -11,7 +11,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field
 
 from .agent import ZillowAgent
-from .agui_events import AGUIEventStream
+from .events import EventStream
 from .memory import FilterHints, get_memory_manager
 from .utils.context_extractor import extract_runtime_context
 from .utils.logging import logger
@@ -122,7 +122,7 @@ async def run_agent(
     agent = get_agent()
 
     async def event_stream():
-        stream = AGUIEventStream(run_id)
+        stream = EventStream(run_id)
 
         # Emit run started
         start_event = stream.start()

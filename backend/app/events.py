@@ -20,7 +20,7 @@ def generate_tool_call_id() -> str:
     return f"call-{uuid.uuid4().hex[:12]}"
 
 
-class AGUIEventStream:
+class EventStream:
     """Helper class for building AG-UI event streams."""
 
     def __init__(self, run_id: str):
