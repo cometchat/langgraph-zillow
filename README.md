@@ -23,7 +23,7 @@ cp .env.example .env
 python -m app.main
 ```
 
-The backend server will start at `http://localhost:8000`.
+The backend server will start at `http://localhost:8000`. You can access the interactive API documentation (Swagger UI) at `http://localhost:8000/docs`.
 
 ### 2. Set Up CometChat
 

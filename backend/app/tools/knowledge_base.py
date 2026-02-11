@@ -5,6 +5,8 @@ from typing import Any
 
 from langchain_core.tools import tool
 
+from ..utils.logging import logger
+
 FAQ_ENTRIES = [
     {
         "id": "commission",
@@ -52,7 +54,7 @@ def zillow_knowledge_base(question: str) -> dict[str, Any]:
     Returns:
         Answer with confidence score, or null answer if no match.
     """
-    print(f"zillow-knowledge-base called with question={question}")
+    logger.debug("zillow-knowledge-base called with question=%s", question)
 
     lower = question.lower()
 

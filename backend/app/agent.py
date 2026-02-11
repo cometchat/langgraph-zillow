@@ -17,6 +17,7 @@ from .tools.listing_details import zillow_listing_details
 from .tools.property_search import zillow_property_search
 from .tools.tour_scheduler import tour_scheduler
 from .utils.context_extractor import RuntimeContext, extract_runtime_context
+from .utils.logging import logger
 
 
 class AgentState(TypedDict):
@@ -69,9 +70,11 @@ def call_model(state: AgentState) -> dict[str, Any]:
     )
 
     listing_hints = state["runtime_context"].listing_hints
-    print(
-        f"[call_model] Listing hints: zpid={listing_hints.zpid}, "
-        f"detailUrl={listing_hints.detailUrl}, address={listing_hints.address}"
+    logger.debug(
+        "[call_model] Listing hints: zpid=%s, detailUrl=%s, address=%s",
+        listing_hints.zpid,
+        listing_hints.detailUrl,
+        listing_hints.address,
     )
 
     messages = [SystemMessage(content=system_prompt)] + list(state["messages"])

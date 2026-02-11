@@ -15,6 +15,7 @@ from ..utils.google_calendar import (
     get_calendar_events,
     get_time_zone,
 )
+from ..utils.logging import logger
 
 
 # Configuration from environment
@@ -423,7 +424,7 @@ def tour_scheduler(
     Returns:
         Tour scheduling result.
     """
-    print(f"tour-scheduler called with action={action}")
+    logger.debug("tour-scheduler called with action=%s", action)
 
     time_zone = get_time_zone()
 

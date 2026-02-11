@@ -7,6 +7,7 @@ from typing import Any
 from langchain_core.tools import tool
 
 from ..data.loader import load_listings
+from ..utils.logging import logger
 from ..utils.normalizers import (
     get_state_variants,
     normalize_home_type,
@@ -273,7 +274,7 @@ def zillow_property_search(
     Returns:
         Search results with listings and metadata.
     """
-    print(f"zillow-property-search called with location={location}, maxPrice={maxPrice}")
+    logger.debug("zillow-property-search called with location=%s, maxPrice=%s", location, maxPrice)
 
     # Load and filter listings
     listings = load_listings()

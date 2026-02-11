@@ -3,7 +3,7 @@
 import json
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .utils.context_extractor import FilterHints
@@ -110,7 +110,7 @@ class WorkingMemoryManager:
             INSERT OR REPLACE INTO working_memory (thread_id, filters, updated_at)
             VALUES (?, ?, ?)
             """,
-            (thread_id, json.dumps(data), datetime.utcnow().isoformat()),
+            (thread_id, json.dumps(data), datetime.now(timezone.utc).isoformat()),
         )
         conn.commit()
 

@@ -6,6 +6,7 @@ from typing import Any
 from langchain_core.tools import tool
 
 from ..data.loader import load_listings
+from ..utils.logging import logger
 
 # Stop words for slug matching
 SLUG_STOP_WORDS = {
@@ -319,8 +320,11 @@ def zillow_listing_details(
     Returns:
         Detailed listing information or error if not found.
     """
-    print(
-        f"zillow-listing-details called with zpid={zpid}, detailUrl={detailUrl}, address={address}"
+    logger.debug(
+        "zillow-listing-details called with zpid=%s, detailUrl=%s, address=%s",
+        zpid,
+        detailUrl,
+        address,
     )
 
     listings = load_listings()

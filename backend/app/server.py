@@ -8,12 +8,13 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .agent import ZillowAgent
 from .agui_events import AGUIEventStream
 from .memory import FilterHints, get_memory_manager
 from .utils.context_extractor import extract_runtime_context
+from .utils.logging import logger
 
 load_dotenv()
 
@@ -28,15 +29,15 @@ class Message(BaseModel):
 class ForwardedProps(BaseModel):
     """Forwarded properties from the client."""
 
-    cometchatContext: dict[str, Any] | None = Field(None, description="CometChat context")
+    model_config = ConfigDict(extra="allow")
 
-    class Config:
-        """configurations"""
-        extra = "allow"
+    cometchatContext: dict[str, Any] | None = Field(None, description="CometChat context")
 
 
 class RunAgentInput(BaseModel):
     """Input for the /run endpoint following AG-UI protocol."""
+
+    model_config = ConfigDict(extra="allow")
 
     messages: list[Message] = Field(..., description="Chat messages")
     # Accept both camelCase and snake_case
@@ -47,10 +48,6 @@ class RunAgentInput(BaseModel):
     forwardedProps: ForwardedProps | None = Field(None, description="Forwarded properties")
     # Also accept cometchatContext at root level
     cometchatContext: dict[str, Any] | None = Field(None, description="CometChat context at root")
-
-    class Config:
-        """configurations"""
-        extra = "allow"
 
     def get_thread_id(self) -> str:
         """Get thread ID from either format."""
@@ -75,9 +72,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# CORS configuration - defaults to allow all origins for development
+cors_origins = os.getenv("CORS_ORIGINS", "*")
+cors_origins_list = [origin.strip() for origin in cors_origins.split(",")] if cors_origins != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -109,14 +110,14 @@ async def run_agent(
     thread_id = request.get_thread_id()
     run_id = request.get_run_id()
     forwarded_props = request.get_forwarded_props()
-    print(f'debug is {debug}')
+    logger.debug("debug mode: %s", debug)
 
     if debug:
-        print("[/run] Received request:")
-        print(f"  threadId: {thread_id}")
-        print(f"  runId: {run_id}")
-        print(f"  messages: {[{'role': m.role, 'content': m.content[:100]} for m in request.messages]}")
-        print(f"  forwardedProps: {forwarded_props}")
+        logger.info("[/run] Received request:")
+        logger.info("  threadId: %s", thread_id)
+        logger.info("  runId: %s", run_id)
+        logger.info("  messages: %s", [{'role': m.role, 'content': m.content[:100]} for m in request.messages])
+        logger.info("  forwardedProps: %s", forwarded_props)
 
     agent = get_agent()
 
@@ -126,7 +127,7 @@ async def run_agent(
         # Emit run started
         start_event = stream.start()
         if debug:
-            print(f"[YIELD] {start_event[:80]}")
+            logger.info("[YIELD] %s", start_event[:80])
         yield start_event
 
         try:
@@ -171,8 +172,7 @@ async def run_agent(
                 event_type = event.get("event")
                 event_name = event.get("name", "N/A")
                 if debug:
-                    # print(f"[EVENT] {event_type}: {event_name}")
-                    pass
+                    logger.debug("[EVENT] %s: %s", event_type, event_name)
 
                 # Handle chat model stream events - only for text content
                 if event_type == "on_chat_model_stream":
@@ -182,12 +182,11 @@ async def run_agent(
                         content = getattr(chunk, "content", None)
                         if content:  # Non-empty string
                             if debug:
-                                # print(f"[CHUNK] content={content[:50]}...")
-                                pass
+                                logger.debug("[CHUNK] content=%s...", content[:50])
                             if not message_started:
                                 msg_start = stream.start_message()
                                 if debug:
-                                    print("[YIELD] text_start")
+                                    logger.info("[YIELD] text_start")
                                 yield msg_start
                                 message_started = True
                             msg_content = stream.message_content(content)
@@ -198,7 +197,7 @@ async def run_agent(
                     pending_tool_name = event_name
                     pending_tool_args = event.get("data", {}).get("input")
                     if debug:
-                        print(f"[BUFFER] tool_start: {pending_tool_name}, args: {pending_tool_args}")
+                        logger.info("[BUFFER] tool_start: %s, args: %s", pending_tool_name, pending_tool_args)
 
                 # Handle tool end - FLUSH all tool events together
                 elif event_type == "on_tool_end":
@@ -217,20 +216,20 @@ async def run_agent(
                         # Emit tool_call_start
                         start_evt = stream.start_tool_call(pending_tool_name)
                         if debug:
-                            print(f"[YIELD] tool_call_start: {pending_tool_name}")
+                            logger.info("[YIELD] tool_call_start: %s", pending_tool_name)
                         yield start_evt
 
                         # Emit tool_call_args
                         if pending_tool_args:
                             args_evt = stream.tool_call_args(pending_tool_args)
                             if debug:
-                                print(f"[YIELD] tool_call_args: {pending_tool_args}")
+                                logger.info("[YIELD] tool_call_args: %s", pending_tool_args)
                             yield args_evt
 
                         # Emit tool_call_end + tool_result
                         end_events = stream.end_tool_call(result)
                         if debug:
-                            print("[YIELD] tool_call_end + tool_result")
+                            logger.info("[YIELD] tool_call_end + tool_result")
                         yield end_events
 
                         # Reset buffer
@@ -242,7 +241,7 @@ async def run_agent(
                     if message_started:
                         msg_end = stream.end_message()
                         if debug:
-                            print("[YIELD] text_end")
+                            logger.info("[YIELD] text_end")
                         yield msg_end
                         message_started = False
 
@@ -259,7 +258,7 @@ async def run_agent(
         # Emit run finished
         finish_event = stream.finish()
         if debug:
-            print(f"[YIELD] {finish_event[:80]}")
+            logger.info("[YIELD] %s", finish_event[:80])
         yield finish_event
 
     return StreamingResponse(

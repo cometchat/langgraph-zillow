@@ -5,6 +5,8 @@ import os
 import uvicorn
 from dotenv import load_dotenv
 
+from .utils.logging import logger
+
 load_dotenv()
 
 def main():
@@ -13,7 +15,7 @@ def main():
     port = int(os.getenv("PORT", "8000"))
     reload = os.getenv("RELOAD", "false").lower() == "true"
 
-    print(f"Starting Zillow Agent server on {host}:{port}")
+    logger.info("Starting Zillow Agent server on %s:%s", host, port)
 
     uvicorn.run(
         "app.server:app",

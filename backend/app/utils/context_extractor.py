@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from .logging import logger
 from .normalizers import (
     coerce_bool,
     coerce_number,
@@ -356,8 +357,8 @@ def extract_runtime_context(forwarded_props: dict[str, Any] | None) -> RuntimeCo
         metadata = {}
 
     # Debug: log the metadata structure
-    print(f"[extract_runtime_context] metadata keys: {list(metadata.keys())}")
-    print(f"[extract_runtime_context] metadata: {metadata}")
+    logger.debug("[extract_runtime_context] metadata keys: %s", list(metadata.keys()))
+    logger.debug("[extract_runtime_context] metadata: %s", metadata)
 
     # Collect all candidate records for value extraction
     # Include explicit paths for nested listing context
@@ -381,7 +382,7 @@ def extract_runtime_context(forwarded_props: dict[str, Any] | None) -> RuntimeCo
     )
 
     # Debug: log collected records count
-    print(f"[extract_runtime_context] collected {len(records)} candidate records")
+    logger.debug("[extract_runtime_context] collected %d candidate records", len(records))
 
     # Extract filter hints
     filter_hints = FilterHints(
@@ -407,9 +408,11 @@ def extract_runtime_context(forwarded_props: dict[str, Any] | None) -> RuntimeCo
     )
 
     # Debug: log extracted listing hints
-    print(
-        f"[extract_runtime_context] listing_hints: zpid={listing_hints.zpid}, "
-        f"detailUrl={listing_hints.detailUrl}, address={listing_hints.address}"
+    logger.debug(
+        "[extract_runtime_context] listing_hints: zpid=%s, detailUrl=%s, address=%s",
+        listing_hints.zpid,
+        listing_hints.detailUrl,
+        listing_hints.address,
     )
 
     # Collect metadata keys for debugging
