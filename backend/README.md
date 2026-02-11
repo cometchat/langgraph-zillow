@@ -182,12 +182,6 @@ Run specific test file:
 pytest tests/test_context_extractor.py
 ```
 
-Run with coverage:
-
-```bash
-pytest --cov=app
-```
-
 ### Code Formatting
 
 ```bash
